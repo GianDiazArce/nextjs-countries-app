@@ -33,8 +33,7 @@ export const getCountryByName = async (name: string): Promise<ICountry | null> =
 }
 
 export const getBorderCountryNames = async (codes: string[]): Promise<string[]> => {
-    // https://restcountries.com/v2/alpha?codes={code},{code},{code}
-    const resp = await countryApi.get<ICountry[]>(`alpha?codes=${codes.join(',')}`);
+    const resp = await countryApi.get<ICountry[]>(`/alpha?codes=${codes.join(',')}`);
     let names: string[] = []
 
     names = resp.data.map(country => country.name);

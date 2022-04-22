@@ -11,8 +11,8 @@ export interface ICountry {
     population:     number | string;
     borders?:        string[];
     nativeName:     string;
-    currencies:     Currency[];
-    languages:      Language[];
+    currencies:     string;
+    languages:      string;
     flag:           string;
 }
 

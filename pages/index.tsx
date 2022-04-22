@@ -3,13 +3,14 @@ import { GetStaticProps, NextPage } from "next";
 import { useRouter } from "next/router";
 
 import { Layout } from "../components/layout";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid, Pagination, Typography } from "@mui/material";
 
 import { countryApi } from "../api";
 import { CustomLabel, CustomSelect } from "../components/custom";
 import { CountryCard } from "../components/country";
 import { ICountryResp } from "../interfaces";
 import { CustomSearch } from "../components/search";
+import { usePagination } from "../hooks";
 
 interface Props {
     countries: ICountryResp[];
@@ -23,6 +24,11 @@ const Home: NextPage<Props> = ({ countries }) => {
     const [filteredCountries, setFilteredCountries] =
         useState<ICountryResp[]>(countries);
 
+    const { currentData, currentPage, jump, maxPage } = usePagination(
+        filteredCountries,
+        16
+    );
+
     useEffect(() => {
         if (regionSelected === "all") {
             setFilteredCountries(countries);
@@ -32,7 +38,7 @@ const Home: NextPage<Props> = ({ countries }) => {
             );
             setFilteredCountries(filtered);
         }
-    }, [regionSelected]);
+    }, [regionSelected, countries]);
 
     const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setRegionSelected(event.target.value);
@@ -42,7 +48,11 @@ const Home: NextPage<Props> = ({ countries }) => {
         e: React.SyntheticEvent,
         value: ICountryResp | null
     ) => {
-        router.push("/country/" + value?.label.split(" (")[0]);
+        router.push("/country/" + value?.label.split(" (")[0].toLowerCase());
+    };
+
+    const handlePageChange = (event: React.ChangeEvent<unknown>, p: number) => {
+        jump(p);
     };
 
     return (
@@ -89,7 +99,7 @@ const Home: NextPage<Props> = ({ countries }) => {
                     }}
                     spacing={6}
                 >
-                    {filteredCountries.map((country, i) => (
+                    {currentData().map((country, i) => (
                         <Grid item key={country.name + i}>
                             <CountryCard
                                 src={country.flag}
@@ -97,7 +107,9 @@ const Home: NextPage<Props> = ({ countries }) => {
                                 onClick={() =>
                                     router.push(
                                         "/country/" +
-                                            country.name.split(" (")[0]
+                                            country.name
+                                                .split(" (")[0]
+                                                .toLowerCase()
                                     )
                                 }
                             >
@@ -125,6 +137,13 @@ const Home: NextPage<Props> = ({ countries }) => {
                         </Grid>
                     ))}
                 </Grid>
+                <Box display="flex" justifyContent="center" marginY={4}>
+                    <Pagination
+                        count={maxPage}
+                        page={currentPage}
+                        onChange={handlePageChange}
+                    />
+                </Box>
             </Box>
         </Layout>
     );
@@ -135,7 +154,8 @@ export const getStaticProps: GetStaticProps = async (ctx) => {
 
     const countries = data.map((country) => ({
         ...country,
-        label: country.name,
+        label: country.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+        name: country.name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
     }));
 
     return {

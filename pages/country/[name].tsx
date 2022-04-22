@@ -8,6 +8,7 @@ import { Layout } from "../../components/layout";
 import { CustomButton, CustomLabel } from "../../components/custom";
 import { ICountry } from "../../interfaces";
 import { servCountry } from "../../services";
+// import Image from "next/image";
 
 interface Props {
     country: ICountry;
@@ -16,11 +17,12 @@ interface Props {
 const CountryPage: NextPage<Props> = ({ country }) => {
     const router = useRouter();
 
+    if (!country) {
+        return <div>...</div>;
+    }
+
     return (
-        <Layout
-            title={country.name}
-            description={`${country.name}, ${country.altSpellings.join(", ")}`}
-        >
+        <Layout title={country.name} description={`${country.name}`}>
             <Box paddingY="2em" paddingX="1em">
                 <CustomButton
                     onClick={() => router.push("/")}
@@ -115,15 +117,11 @@ const CountryPage: NextPage<Props> = ({ country }) => {
                                 />
                                 <CustomLabel
                                     label1={"Currencies"}
-                                    label2={Object.entries(country.currencies)
-                                        .map((value) => value[1].name)
-                                        .join(", ")}
+                                    label2={country.currencies}
                                 />
                                 <CustomLabel
                                     label1={"Languages"}
-                                    label2={Object.entries(country.languages)
-                                        .map((value) => value[1].name)
-                                        .join(", ")}
+                                    label2={country.languages}
                                 />
                             </Box>
                         </Box>
@@ -147,7 +145,14 @@ const CountryPage: NextPage<Props> = ({ country }) => {
                                             text={border}
                                             onClick={() =>
                                                 router.push(
-                                                    `/country/${border}`
+                                                    `/country/${border
+                                                        .split(" (")[0]
+                                                        .normalize("NFD")
+                                                        .replace(
+                                                            /[\u0300-\u036f]/g,
+                                                            ""
+                                                        )
+                                                        .toLowerCase()}`
                                                 )
                                             }
                                         />
@@ -168,17 +173,21 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
     return {
         paths: countries.map((country) => ({
             params: {
-                name: country.name.split(" (")[0],
+                name: country.name
+                    .split(" (")[0]
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase(),
             },
         })),
         fallback: "blocking",
     };
 };
 
-export const getStaticProps: GetStaticProps = async (ctx) => {
-    const { name = "" } = ctx.params as { name: string };
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+    const { name = "" } = params as { name: string };
 
-    const country = await servCountry.getCountryByName(name);
+    const country = await servCountry.getCountryByName(name.toLowerCase());
 
     if (!country) {
         return {
@@ -191,7 +200,22 @@ export const getStaticProps: GetStaticProps = async (ctx) => {
 
     return {
         props: {
-            country: country,
+            country: {
+                ...country,
+                country: country.name
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, ""),
+                languages: country.languages
+                    ? Object.entries(country.languages)
+                          .map((value: any) => value[1].name)
+                          .join(", ")
+                    : "No Languages",
+                currencies: country.currencies
+                    ? Object.entries(country.currencies)
+                          .map((value: any) => value[1].name)
+                          .join(", ")
+                    : "No Currencies",
+            },
         },
         revalidate: 86400,
     };

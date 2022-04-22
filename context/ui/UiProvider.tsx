@@ -31,7 +31,6 @@ export const UiProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
     }, [state.theme]);
 
     const changeTheme = (theme: IThemeType) => {
-        console.log("second");
         dispatch({
             type: "[Ui] - Change Theme",
             payload: theme === "dark" ? "dark" : "light",
